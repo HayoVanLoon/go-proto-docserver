@@ -1,0 +1,19 @@
+service: docs
+
+runtime: go114
+
+default_expiration: "5m"
+
+handlers:
+  - url: /index.html
+    secure: always
+    static_files: files/index.html
+    upload: files/index.html
+    http_headers:
+      Cache-Control: public, max-age=300, immutable
+  - url: /static/(.*)$
+    secure: always
+    static_files: files/static/\1
+    upload: files/static/.*
+    http_headers:
+      Cache-Control: public, max-age=300, immutable

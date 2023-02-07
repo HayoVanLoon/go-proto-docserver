@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <title>API Documentation</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet"
+        type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:400,700,400italic"/>
+  <link rel="stylesheet" type="text/css" href="/static/css/main.css"/>
+</head>
+
+<body>
+
+<div class="header">
+  <h1 id="title">
+    <img alt="logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAnQAAAJ0Bj3LnbgAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAJTSURBVFiFxdcxT+JgHMfxX+vTpDAYIDSRhMQ4GExcNPE1GF7HneNt9xJuPG+71fFegYuUlTgYsWVwsOlACAaCDR6lTfoU6/+Ws/FEBJ4W7j+WPM/3Q3iSPgAJRtf1U13XT5PsIYsurNVq34vF4qdisXii6/qPJAih+M3NzePz8zMREZmm+XhxcfHzv8RfZi2IWfG1IObFV4pYNL4SxLLxVBGi8VQQSeOJEGnFhRBpx5dCLBN/eHgg0zTJMAyybZs8zxNCSK/jmqadHBwc5CRJmta9mTAM4TgOLMuC53lgjKFcLoMxBlmWoSgKJEmCqqrIZDLY3NyEJElotVq/+/3+r2q1+iUGzIsHQQDHceC6LlzXhed54JyDiD5E5vN57O3t4erqCowxbG1tYXd3F3d3dzFC+hv/fHh4mPc8D77vI5fLAQC63S56vR6iKEI2m4WiKGCMgYgwmUzAOcd4PEYYhu8CNjY2wBgD5zx+trOzg/39fRiGMXIc54y9XhBFEXq9HkzTRKFQQKlUwtHREVRVnfktiQij0QiDwQCdTgdBEAAANE1DpVIBYwyu68KyLMiyjO3t7elN6vX6t2azGR++4XAodNKDIKDLy0s6Pz+n+/v7fz7jnFMURfFhnLrIvEUsMr7vk2EY1G6342fD4ZAajQbZtv3umnfjIoinpye6vr6m29tbmkwmC4E/jC+LEHk5LXx/FPk5UounjRCKp4VIFE+KSCUuikg1vixiJfFFESuNz0OsJT4LkSQ+/+YxY15e4wBkx3HOjo+Pv4ruJTxp/D3/AzJInmmDyhy8AAAAAElFTkSuQmCC"/>
+    <span>API Documentation</span>
+  </h1>
+</div>
+
+<div class="menu">
+
+  <h2><a href="#overview">Overview</a></h2>
+
+  <h2><a href="#services">Services</a></h2>
+
+  <ul class="sub-menu">
+{{range .Files}}{{range .Services}}
+    <li><a href="#services-{{.FullName | lower}}">{{.Name}}</a></li>
+{{end}}{{end}}
+  </ul>
+
+  <h2><a href="#messages">Messages &amp; Enums</a></h2>
+
+  <ul class="sub-menu">
+{{$prev_file_package := ""}}
+{{range .Files}}
+  {{$file_name := .Name}}{{$file_package := .Package}}
+  {{if ne $prev_file_package $file_package}}
+    {{if $prev_file_package}}
+      </ul>
+    </li>
+    {{end}}
+    <li class="foldout-elem">
+      <button class="foldout-btn">+</button><span>{{$file_package}}</span>
+      <ul class="foldout-target" hidden>
+  {{end}}
+  {{range .Messages}}
+        <li><span class="badge">M</span><a href="#messages-{{.FullName}}">{{.LongName}}</a></li>
+  {{end}}
+  {{range .Enums}}
+        <li><span class="badge">E</span><a href="#messages-{{.FullName}}">{{.LongName}}</a></li>
+  {{end}}
+  {{range .Extensions}}
+        <li><a href="#{{$file_name}}-extensions">File-level Extensions</a></li>
+  {{end}}
+{{$prev_file_package = $file_package}}
+{{end}}
+      </ul>
+    </li>
+  </ul>
+</div>
+
+<div class="content-wrapper">
+<div class="content">
+
+<a id="overview" />
+<h1>Overview</h1>
+
+This page describes the API and the services it provides. This API was designed
+and implemented following an adaptation of Google's <a href="https://cloud.google.com/apis/design">
+API Design Guide</a>.
+
+<h2>Message Serialisation</h2>
+Communication to and from services is done through <a href="https://grpc.io">gRPC</a>
+and <a href="https://developers.google.com/protocol-buffers/">Protocol Buffers</a>.
+
+<p>To communicate with a service using HTTP/JSON, the request has to be
+transcoded. A transcoding proxy usually takes care of this.</p>
+
+<h2>Message Json Format</h2>
+<p>In protocol buffer specifications, message fields are specified in snake_case.
+JSON representations of these messages however should be in camelCase.</p>
+
+So for the following message specification ...
+<pre>
+message MyMessage {
+  repeated string my_texts = 1;
+  int32 some_number = 2;
+}
+</pre>
+
+... a valid json message would be
+<pre>
+{
+  "myTexts": ["everything", "is", "awesome"],
+  "someNumber": 42
+}
+</pre>
+
+<p>Failure to comply will result in rejection.</p>
+
+<a id="services" />
+<h1>Services</h1>
+{{range .Files}}{{$file := .}}
+  {{if .Services}}
+  {{range .Services}}{{$service := .}}
+  <a id="services-{{.FullName | lower}}"></a>
+  <h2>Service {{.Name}}</h2>
+  <span class="package-span">package {{$file.Package}}</span>
+
+  {{if .Description}}
+  <p>{{.Description | replace "&" "&amp;" | replace "<" "&lt;" | replace ">" "&gt;" | replace "\n" "<br>"}}</p>
+  {{end}}
+
+  <table>
+    <thead>
+      <tr><th colspan="2">Methods</th></tr>
+    </thead>
+    <tbody>
+    {{range .Methods}}{{$method := .}}
+      <tr class="service-body">
+        <td><a href="#method-{{$service.FullName}}-{{.Name}}">{{.Name}}</a></td>
+        <td>{{.Description | replace "&" "&amp;" | replace "<" "&lt;" | replace ">" "&gt;" | replace "\n" "<br>"}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+
+  <h3>Methods</h3>
+    {{range .Methods}}{{$method:= .}}
+  <div class="table-wrapper">
+    <a id="method-{{$service.FullName}}-{{.Name}}"></a>
+    <h3>{{$service.FullName}}.{{.Name}}</h3>
+    <table>
+      <thead>
+        <tr><th><a id="method-{{$service.FullName}}-{{.Name}}"></a>{{.Name}}</th></tr>
+      </thead>
+      <tbody>
+        <tr class="method-body"><td>
+          <code>rpc {{.Name}}(</code>
+          <a href="#messages-{{.RequestFullType}}">{{.RequestType}}</a>
+          <code>) returns (</code>
+          <a href="#messages-{{.ResponseFullType}}">{{.ResponseType}}</a>
+          <code>)</code>
+          {{if .Description}}
+          <p>{{.Description | replace "&" "&amp;" | replace "<" "&lt;" | replace ">" "&gt;" | replace "\n" "<br>"}}</p>
+          {{end}}
+      {{- range $service.MethodOptions}}{{$option := .}}
+        {{if eq . "google.api.http"}}
+          {{range $service.MethodsWithOption .}}
+            {{if eq .Name $method.Name}}
+              {{range (.Option $option).Rules}}
+                <h4>HTTP Mapping</h4>
+                <pre>{{.Method}} {{.Pattern}}</pre>
+              {{end}}
+            {{end}}
+          {{end}}
+        {{else}}
+          Unsupported option: {{.}}
+        {{end}}
+      {{- end -}}
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+    {{end}}
+  {{end}}{{end}}
+{{end}}
+
+<a id="messages"></a>
+<h1>Messages</h1>
+
+{{$prev_file_package = ""}}
+{{range .Files}}{{$file := .}}
+  {{if ne $prev_file_package $file.Package}}
+  <h2>{{.Package}}</h2>
+  {{end}}
+
+  {{range .Messages}}
+  <a id="messages-{{.FullName}}"></a>
+  <div class="table-wrapper">
+    <h3>{{.FullName}}</h3>
+    {{if .Description}}
+    <p>{{.Description | replace "&" "&amp;" | replace "<" "&lt;" | replace ">" "&gt;" | replace "\n" "<br>"}}</p>
+    {{end}}
+    <table class="field-table">
+      <thead>
+        <tr>
+          <th colspan="2">Fields</th>
+        </tr>
+      </thead>
+      <tbody>
+    {{if .HasFields}}
+      {{range .Fields}}
+        <tr>
+          <td class="field-name">{{.Name}}{{if eq .Label "repeated"}}[]{{end}}</td>
+          <td class="field-description">
+            <a href="#messages-{{.FullType}}">{{.LongType}}</a>
+            {{if .Description}}
+            <p>{{.Description | replace "&" "&amp;" | replace "<" "&lt;" | replace ">" "&gt;" | replace "\n" "<br>"}}</p>
+            {{end}}
+          </td>
+        </tr>
+      {{end}}
+    {{else}}
+          <tr class="field-name">
+            <td colspan="2">no fields</td>
+          </tr>
+    {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{end}}
+
+  {{$fst_enum := "1"}}{{range .Enums}}
+    {{if eq $fst_enum "1"}}
+      {{$fst_enum := "0"}}
+  <h3>Enums</h3>
+    {{end}}
+  <div class="table-wrapper">
+    <table class="field-table">
+      <thead>
+        <tr><th colspan="2"><a id="messages-{{.FullName}}"></a>{{.FullName}}</th></tr>
+      </thead>
+      <tbody>
+    {{range .Values}}
+        <tr>
+          <td class="field-name">{{.Name}}</td>
+          <td class="field-description">
+            <p>{{.Number}}</p>
+            {{if .Description}}
+            <p>{{.Description | replace "&" "&amp;" | replace "<" "&lt;" | replace ">" "&gt;" | replace "\n" "<br>"}}</p>
+            {{end}}
+          </td>
+        </tr>
+    {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{end}}
+  {{$prev_file_package = $file.Package}}
+{{end}}
+
+<h2 id="scalar-value-types">Scalar Value Types</h2>
+<table class="field-table">
+  <thead>
+    <tr>
+      <th>.proto Type</th>
+      <th>Implementations</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+{{range .Scalars}}
+    <tr id="{{.ProtoType}}">
+      <td class="field-name"><a id="messages-{{.ProtoType}}"></a>{{.ProtoType}}</td>
+      <td class="field-description">
+        <table class="scalar-table">
+          <tbody>
+            <tr><td>C++</td><td>{{.CppType}}</td></tr>
+            <tr><td>Java</td><td>{{.JavaType}}</td></tr>
+            <tr><td>Python</td><td>{{.PythonType}}</td></tr>
+            <tr><td>Go</td><td>{{.GoType}}</td></tr>
+            <tr><td>C#</td><td>{{.CSharp}}</td></tr>
+            <tr><td>PHP</td><td>{{.PhpType}}</td></tr>
+            <tr><td>Ruby</td><td>{{.RubyType}}</td></tr>
+          </tbody>
+        </table>
+      </td>
+      <td class="field-description">{{.Notes}}</td>
+    </tr>
+{{end}}
+  </tbody>
+</table>
+</div>
+</div>
+
+<script>
+(function(){
+  function toggle(btn, div) {
+    div.hidden = !div.hidden;
+    btn.innerText = "+" === btn.innerText ? "-" : "+";
+  }
+  let foldouts = document.getElementsByClassName("foldout-elem");
+  for (let i = 0; i < foldouts.length; i += 1) {
+    let btn = foldouts[i].getElementsByClassName("foldout-btn")[0];
+    let target = foldouts[i].getElementsByClassName("foldout-target")[0];
+    btn.addEventListener("click", function(){toggle(btn, target)});
+  }
+})();
+</script>
+</body>
+</html>

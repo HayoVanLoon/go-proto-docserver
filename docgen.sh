@@ -35,27 +35,32 @@ Not sufficiently excluding broken or unwanted proto files may lead to errors.
 
 [ -n "${1}" ] || (usage; exit 1)
 
-PROTO_PATH=""
+SRC=""
 PRUNE=""
+OUT="files"
 
 for d in "$@"; do
 	case "${d}" in
 	-p=*)
-		PROTO_PATH=${d:3}
+		SRC=${d:3}
 		continue
 		;;
 	-t=*)
 		TEMPLATE=${d:3}
 		continue
 		;;
+	-o=*)
+		OUT=${d:3}
+		continue
+		;;
 	*)
-		[ -n "${PROTO_PATH}" ] || (usage; echo "Expected -p=<path>, got ${d}"; exit 1)
+		[ -n "${SRC}" ] || (usage; echo "Expected -p=<path>, got ${d}"; exit 1)
 		;;
 	esac
-	[ -n "${PROTO_PATH}" ] || (echo "expected -p=PROTO_PATH"; exit 1)
-	[ -d "${PROTO_PATH}" ] || (echo "'${PROTO_PATH}' is not a directory" && exit 1)
+	[ -n "${SRC}" ] || (echo "expected -p=SRC"; exit 1)
+	[ -d "${SRC}" ] || (echo "'${SRC}' is not a directory" && exit 1)
 
-	EXCLUDE="${PROTO_PATH}/${d}"
+	EXCLUDE="${SRC}/${d}"
 	[ -d "${EXCLUDE}" ] || (echo "cannot exclude unknown directory '${EXCLUDE}'" && exit 1)
 	echo "Excluding ${EXCLUDE}"
 	PRUNE="${PRUNE} -path ${EXCLUDE} -prune -o"
@@ -63,19 +68,19 @@ done
 
 [ -f "${TEMPLATE}" ] || (echo "template not found (${TEMPLATE})" && exit 1)
 
-PROTO_FILES=$(find "${PROTO_PATH}" \
-	-path "${PROTO_PATH}/google" -prune -o \
+PROTO_FILES=$(find "${SRC}" \
+	-path "${SRC}/google" -prune -o \
 	${PRUNE} \
 	-name '*.proto' | grep -E ".proto$" | sort)
 
-# GOOG_FILES=$(find "${PROTO_PATH}/google" ${PRUNE} -name '*.proto' | grep -E ".proto$" | sort)
+# GOOG_FILES=$(find "${SRC}/google" ${PRUNE} -name '*.proto' | grep -E ".proto$" | sort)
 GOOG_FILES=
 
 protoc \
-	--doc_out=files \
+	--doc_out="${OUT}" \
 	--doc_opt="${TEMPLATE}",index.html \
 	-I"${PROTO_GOOGLEAPIS}"\
-	-I"${PROTO_PATH}" \
+	-I"${SRC}" \
 	${PROTO_FILES} ${GOOG_FILES} || (printf "\nError generating docs\n\n" && usage && exit 1)
 
 tidy -i -o files/index.html files/index.html || echo "Error running HTML Tidy."
